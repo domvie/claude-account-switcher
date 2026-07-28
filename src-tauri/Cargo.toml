@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Profile switcher for Claude Desktop and Claude Code"
 authors = ["Dominic <dv@gradient0.com>"]
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/gradient0/claude-account-switcher"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

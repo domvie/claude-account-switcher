@@ -563,10 +563,12 @@ mod tests {
 
     #[test]
     fn keychain_suffix_matches_known_vector() {
-        // Verified live against Claude Code 2.1.220 on macOS.
+        // The suffix scheme (first 8 hex chars of sha256 over the exact
+        // path string) was verified live against Claude Code 2.1.220 on
+        // macOS; this vector is sha256("/Users/alice/.claude-work").
         assert_eq!(
-            keychain_suffix(Path::new("/Users/dominic/.claude-personal")),
-            "435d6ab5"
+            keychain_suffix(Path::new("/Users/alice/.claude-work")),
+            "be865d75"
         );
     }
 

@@ -7,6 +7,17 @@ sessions, MCP servers, skills, and plugins.
 
 > **Status:** early development (pre-release). macOS first; Windows next; Linux planned (beta).
 
+## Install
+
+Grab the build for your platform from [Releases](../../releases). The builds are
+**unsigned** (no paid developer certificates yet), so the OS will object once:
+
+- **macOS**: after moving the app to Applications, either right-click → **Open**,
+  or go to System Settings → Privacy & Security → **"Open Anyway"** after the
+  first blocked launch. Alternatively: `xattr -cr "/Applications/Claude Account Switcher.app"`.
+- **Windows**: SmartScreen will warn — click **More info** → **Run anyway**.
+- **Linux**: beta; AppImage and .deb provided.
+
 ## How it works
 
 - **Claude Desktop** is an Electron app, so each profile gets its own
@@ -48,6 +59,15 @@ npm run tauri dev
 ```
 
 Built with [Tauri v2](https://v2.tauri.app) (Rust + TypeScript).
+
+## Disclaimer
+
+This is an independent open-source project. It is **not affiliated with,
+endorsed by, or supported by Anthropic or OpenAI**. "Claude" is a trademark of
+Anthropic, PBC; "OpenAI" and "Codex" are trademarks of OpenAI. The app relies
+partly on undocumented behavior (see Known quirks) that could change at any
+time. It reads login tokens only to display usage and never sends them
+anywhere except to the respective vendor's own API.
 
 ## License
 
