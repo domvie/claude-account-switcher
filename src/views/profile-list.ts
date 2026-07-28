@@ -1,4 +1,4 @@
-import type { Profile } from "../types";
+import type { Profile, Usage } from "../types";
 
 export function esc(s: string): string {
   const d = document.createElement("div");
@@ -11,6 +11,43 @@ export function renderProfileList(root: HTMLElement, profiles: Profile[]): void 
     <ul class="profile-list">
       ${profiles.map(renderRow).join("")}
     </ul>
+  `;
+}
+
+export function renderUsage(root: HTMLElement, profileId: string, usage: Usage): void {
+  const el = root.querySelector<HTMLElement>(`[data-usage-for="${CSS.escape(profileId)}"]`);
+  if (!el) return;
+  switch (usage.status) {
+    case "ok":
+      el.innerHTML = [
+        usage.fiveHour ? usageBar("5h", usage.fiveHour.utilization, usage.fiveHour.resetsAt) : "",
+        usage.sevenDay ? usageBar("7d", usage.sevenDay.utilization, usage.sevenDay.resetsAt) : "",
+      ].join("");
+      break;
+    case "no-credentials":
+      el.innerHTML = `<span class="usage-note" title="Log into Claude Code with this profile once to see usage">no usage data</span>`;
+      break;
+    case "token-expired":
+      el.innerHTML = `<span class="usage-note" title="${esc(usage.message ?? "")}">usage stale</span>`;
+      break;
+    case "error":
+      el.innerHTML = `<span class="usage-note" title="${esc(usage.message ?? "")}">usage unavailable</span>`;
+      break;
+  }
+}
+
+function usageBar(label: string, pct: number, resetsAt: string | null): string {
+  const clamped = Math.max(0, Math.min(100, pct));
+  const level = clamped >= 90 ? " usage-high" : clamped >= 70 ? " usage-warn" : "";
+  const title = resetsAt
+    ? `${label} window: ${clamped.toFixed(0)}% used, resets ${new Date(resetsAt).toLocaleString()}`
+    : `${label} window: ${clamped.toFixed(0)}% used`;
+  return `
+    <span class="usage-item${level}" title="${esc(title)}">
+      <span class="usage-label">${label}</span>
+      <span class="usage-track"><span class="usage-fill" style="width:${clamped}%"></span></span>
+      <span class="usage-pct">${clamped.toFixed(0)}%</span>
+    </span>
   `;
 }
 
@@ -27,6 +64,7 @@ function renderRow(p: Profile): string {
         <span class="profile-name">${esc(p.name)}</span>
         <span class="profile-badges">${badges}</span>
       </div>
+      <div class="usage" data-usage-for="${esc(p.id)}"></div>
       <div class="profile-actions">
         ${
           p.desktop.enabled

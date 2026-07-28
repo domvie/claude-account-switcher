@@ -77,6 +77,18 @@ export interface LaunchOutcome {
   firstLogin: boolean;
 }
 
+export interface WindowUsage {
+  utilization: number;
+  resetsAt: string | null;
+}
+
+export interface Usage {
+  status: "ok" | "no-credentials" | "token-expired" | "error";
+  fiveHour: WindowUsage | null;
+  sevenDay: WindowUsage | null;
+  message: string | null;
+}
+
 export interface AppError {
   kind: "not-found" | "validation" | "io" | "launch" | "internal";
   message: string;

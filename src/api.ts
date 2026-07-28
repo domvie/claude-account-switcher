@@ -10,6 +10,7 @@ import type {
   ProfileUpdate,
   Settings,
   ShimStatus,
+  Usage,
 } from "./types";
 
 export const api = {
@@ -23,6 +24,7 @@ export const api = {
   launchTerminal: (id: string, terminal?: string) =>
     invoke<void>("launch_terminal", { id, terminal: terminal ?? null }),
   terminalCommand: (id: string) => invoke<string>("terminal_command", { id }),
+  getUsage: (id: string) => invoke<Usage>("get_usage", { id }),
   installShim: (id: string) => invoke<ShimStatus>("install_shim", { id }),
   removeShim: (id: string) => invoke<boolean>("remove_shim", { id }),
   shimStatus: (id: string) => invoke<ShimStatus>("shim_status", { id }),

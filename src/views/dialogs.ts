@@ -1,4 +1,10 @@
-import type { DeleteOptions, NewProfile, Profile, ProfileUpdate } from "../types";
+import type {
+  DeleteOptions,
+  NewProfile,
+  Profile,
+  ProfileUpdate,
+  ShimStatus,
+} from "../types";
 import { esc } from "./profile-list";
 
 const COLORS = ["#D97757", "#6A9BCC", "#7C3AED", "#2E9E6B", "#C2483B", "#B58A2A"];
@@ -89,18 +95,35 @@ export function showEditDialog(
 }
 
 /// Shown when Claude Code is requested for a profile: the command to paste
-/// into the user's own terminal, plus optional one-click launchers.
+/// into the user's own terminal, plus optional one-click launchers and
+/// shim management.
 export function showTerminalDialog(
   profile: Profile,
   command: string,
+  shim: ShimStatus,
   onCopy: (command: string) => void,
   onOpen: (terminal: "Terminal" | "iTerm2") => void,
+  onInstallShim: () => Promise<ShimStatus>,
 ): void {
+  const shimSection = (s: ShimStatus): string => {
+    if (profile.isDefault) return "";
+    if (!s.installed) {
+      return `<p class="hint">Tip: install a <code>${esc(profile.code.shimName)}</code> command so you don't need the env var:
+        <button type="button" class="btn" id="install-shim">Install shim</button></p>`;
+    }
+    const pathHint = s.onPath
+      ? ""
+      : `<br/>⚠ <code>${esc(s.path ?? "")}</code> is not on your PATH — add:
+         <code class="selectable">export PATH="$HOME/.local/bin:$PATH"</code>`;
+    return `<p class="hint">✓ <code>${esc(profile.code.shimName)}</code> is installed${pathHint}</p>`;
+  };
+
   const dialog = openDialog(`
     <form method="dialog" class="dialog-form">
       <h2>Claude Code — ${esc(profile.name)}</h2>
       <p class="hint">Run this in any terminal, from whatever directory you want to work in:</p>
       <div class="command-box"><code>${esc(command)}</code></div>
+      <div id="shim-section">${shimSection(shim)}</div>
       <menu class="menu-left">
         <button value="copy" class="btn btn-primary">Copy command</button>
         <button value="open-terminal" class="btn">Open in Terminal</button>
@@ -108,6 +131,16 @@ export function showTerminalDialog(
       </menu>
     </form>
   `);
+
+  dialog.querySelector("#install-shim")?.addEventListener("click", async () => {
+    try {
+      const status = await onInstallShim();
+      dialog.querySelector("#shim-section")!.innerHTML = shimSection(status);
+    } catch {
+      // error is toasted by the caller
+    }
+  });
+
   dialog.addEventListener("close", () => {
     switch (dialog.returnValue) {
       case "copy":

@@ -1,7 +1,7 @@
 import { api, onProfilesChanged } from "./api";
 import type { Profile } from "./types";
 import { isAppError } from "./types";
-import { renderProfileList } from "./views/profile-list";
+import { renderProfileList, renderUsage } from "./views/profile-list";
 import {
   showCreateDialog,
   showDeleteDialog,
@@ -36,6 +36,23 @@ function reportError(e: unknown): void {
 async function refresh(): Promise<void> {
   profiles = await api.listProfiles();
   renderProfileList(listRoot(), profiles);
+  void refreshUsage();
+}
+
+const USAGE_POLL_MS = 5 * 60 * 1000;
+
+async function refreshUsage(): Promise<void> {
+  await Promise.all(
+    profiles
+      .filter((p) => p.code.enabled)
+      .map(async (p) => {
+        try {
+          renderUsage(listRoot(), p.id, await api.getUsage(p.id));
+        } catch {
+          // usage is best-effort; the row just keeps its placeholder
+        }
+      }),
+  );
 }
 
 function profileFromRow(el: Element): Profile | undefined {
@@ -59,9 +76,13 @@ async function handleAction(action: string, profile: Profile): Promise<void> {
     }
     case "launch-terminal": {
       const command = await api.terminalCommand(profile.id);
+      const shim = profile.isDefault
+        ? { installed: false, path: null, onPath: false, drifted: false }
+        : await api.shimStatus(profile.id);
       showTerminalDialog(
         profile,
         command,
+        shim,
         async (cmd) => {
           try {
             await writeText(cmd);
@@ -76,6 +97,16 @@ async function handleAction(action: string, profile: Profile): Promise<void> {
             toast(`Opening ${terminal} (${profile.name})`);
           } catch (e) {
             reportError(e);
+          }
+        },
+        async () => {
+          try {
+            const status = await api.installShim(profile.id);
+            toast(`Installed ${profile.code.shimName}`);
+            return status;
+          } catch (e) {
+            reportError(e);
+            throw e;
           }
         },
       );
@@ -139,7 +170,10 @@ window.addEventListener("DOMContentLoaded", async () => {
   onProfilesChanged((updated) => {
     profiles = updated;
     renderProfileList(listRoot(), profiles);
+    void refreshUsage();
   });
+
+  setInterval(() => void refreshUsage(), USAGE_POLL_MS);
 
   try {
     const env = await api.detectEnvironment();

@@ -151,6 +151,20 @@ pub fn terminal_command(state: State<AppState>, id: String) -> Result<String> {
 }
 
 #[tauri::command]
+pub async fn get_usage(state: State<'_, AppState>, id: String) -> Result<crate::usage::Usage> {
+    let profile = state.store.lock().unwrap().get(&id)?.clone();
+    if !profile.code.enabled {
+        return Ok(crate::usage::Usage {
+            status: crate::usage::UsageStatus::NoCredentials,
+            five_hour: None,
+            seven_day: None,
+            message: None,
+        });
+    }
+    crate::usage::get_usage(&profile).await
+}
+
+#[tauri::command]
 pub fn detect_environment(state: State<AppState>) -> EnvInfo {
     let settings = state.store.lock().unwrap().config.settings.clone();
     EnvInfo {

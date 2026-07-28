@@ -122,6 +122,59 @@ main {
   border-style: dashed;
 }
 
+.usage {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 96px;
+}
+
+.usage-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.usage-label {
+  width: 14px;
+}
+
+.usage-track {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.usage-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.usage-warn .usage-fill {
+  background: #b58a2a;
+}
+
+.usage-high .usage-fill {
+  background: var(--danger);
+}
+
+.usage-pct {
+  width: 30px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-note {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
 .profile-actions {
   display: flex;
   gap: 6px;

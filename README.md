@@ -27,6 +27,11 @@ skills, and plugins.
   shows up there. This can't be intercepted; just copy the code from wherever
   it appears into the login screen of the *new* window. The app shows a
   reminder on a profile's first login.
+- **Usage stats ask for Keychain access (macOS).** The per-profile usage bars
+  read each profile's Claude Code login token (read-only) to query Anthropic's
+  usage API. On macOS that token lives in the Keychain, so the first read
+  triggers an "allow access?" prompt — click **Always Allow** to stop it
+  reappearing. The app never modifies or refreshes tokens.
 - **Claude Code launches start in your home directory.** The recommended flow
   is the profile's **Terminal** dialog: copy the shown command and paste it in
   your own terminal, in the project directory you actually want to work in.

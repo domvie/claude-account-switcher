@@ -5,6 +5,7 @@ mod platform;
 mod profiles;
 mod shims;
 mod tray;
+mod usage;
 
 use std::sync::Mutex;
 
@@ -65,6 +66,7 @@ pub fn run() {
             commands::launch_desktop,
             commands::launch_terminal,
             commands::terminal_command,
+            commands::get_usage,
             commands::install_shim,
             commands::remove_shim,
             commands::shim_status,
