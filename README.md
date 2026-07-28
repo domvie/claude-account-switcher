@@ -1,9 +1,9 @@
 # Claude Account Switcher
 
 A small desktop app for people with more than one Claude account. It manages named
-profiles ("Personal", "Work", …) and launches **Claude Desktop** or **Claude Code**
-under the selected profile — each with its own login, settings, sessions, MCP servers,
-skills, and plugins.
+profiles ("Personal", "Work", …) and launches **Claude Desktop**, **Claude Code**, or
+**OpenAI Codex CLI** under the selected profile — each with its own login, settings,
+sessions, MCP servers, skills, and plugins.
 
 > **Status:** early development (pre-release). macOS first; Windows next; Linux planned (beta).
 
@@ -18,6 +18,10 @@ skills, and plugins.
   (on macOS, Claude Code namespaces its Keychain entry per config dir automatically).
   The app installs per-profile shell shims (e.g. `claude-work`) and can open a
   terminal pre-configured for a profile.
+- **OpenAI Codex CLI** supports the `CODEX_HOME` environment variable the same
+  way (`auth.json` and config live inside it), so profiles get `codex-<name>`
+  shims too. The ChatGPT desktop app is native (not Electron), so there is no
+  desktop-app equivalent for Codex.
 
 ## Known quirks
 
