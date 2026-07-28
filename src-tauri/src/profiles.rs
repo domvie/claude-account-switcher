@@ -412,6 +412,9 @@ impl Store {
 
 /// First 8 hex chars of sha256 over the exact config-dir path string —
 /// the suffix Claude Code appends to its macOS Keychain service name.
+/// All callers are macOS-gated, but the math is platform-independent and
+/// unit-tested everywhere.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn keychain_suffix(config_dir: &Path) -> String {
     use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
