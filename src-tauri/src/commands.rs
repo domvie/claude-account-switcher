@@ -8,6 +8,7 @@ use crate::error::{AppError, Result};
 use crate::launcher::{self, LaunchOutcome};
 use crate::platform;
 use crate::profiles::{Env, NewProfile, Profile, ProfileUpdate, Settings, Store};
+use crate::shims::CliTool;
 
 pub struct AppState {
     pub store: Mutex<Store>,
@@ -33,6 +34,8 @@ pub struct EnvInfo {
 pub struct DeleteOptions {
     pub delete_desktop_dir: bool,
     pub delete_code_dir: bool,
+    #[serde(default)]
+    pub delete_codex_dir: bool,
     pub delete_keychain_entry: bool,
     pub remove_shim: bool,
 }
@@ -42,6 +45,7 @@ pub struct DeleteOptions {
 pub struct DeleteReport {
     pub desktop_dir_deleted: bool,
     pub code_dir_deleted: bool,
+    pub codex_dir_deleted: bool,
     pub keychain_entry_deleted: bool,
     pub shim_removed: bool,
     pub warnings: Vec<String>,
@@ -70,7 +74,7 @@ pub fn update_profile(
     id: String,
     patch: ProfileUpdate,
 ) -> Result<Profile> {
-    let profile = state.store.lock().unwrap().update(&id, patch)?;
+    let profile = state.store.lock().unwrap().update(&id, patch, &state.env)?;
     notify_profiles_changed(&app, &state);
     Ok(profile)
 }
@@ -101,6 +105,18 @@ pub fn delete_profile(
                 .push(format!("could not trash Claude Code config dir: {e}")),
         }
     }
+    if opts.delete_codex_dir {
+        if let Some(codex) = &profile.codex {
+            if codex.config_dir.exists() {
+                match trash::delete(&codex.config_dir) {
+                    Ok(()) => report.codex_dir_deleted = true,
+                    Err(e) => report
+                        .warnings
+                        .push(format!("could not trash Codex config dir: {e}")),
+                }
+            }
+        }
+    }
     if opts.delete_keychain_entry {
         match platform::delete_keychain_credential(&profile.code.config_dir) {
             Ok(deleted) => report.keychain_entry_deleted = deleted,
@@ -110,9 +126,11 @@ pub fn delete_profile(
         }
     }
     if opts.remove_shim {
-        match crate::shims::remove(&profile, &state.env) {
-            Ok(removed) => report.shim_removed = removed,
-            Err(e) => report.warnings.push(format!("could not remove shim: {e}")),
+        for tool in [CliTool::Claude, CliTool::Codex] {
+            match crate::shims::remove(&profile, tool, &state.env) {
+                Ok(removed) => report.shim_removed |= removed,
+                Err(e) => report.warnings.push(format!("could not remove shim: {e}")),
+            }
         }
     }
 
@@ -133,21 +151,26 @@ pub fn launch_desktop(app: AppHandle, state: State<AppState>, id: String) -> Res
 }
 
 #[tauri::command]
-pub fn launch_terminal(state: State<AppState>, id: String, terminal: Option<String>) -> Result<()> {
+pub fn launch_terminal(
+    state: State<AppState>,
+    id: String,
+    tool: CliTool,
+    terminal: Option<String>,
+) -> Result<()> {
     let (profile, settings) = {
         let store = state.store.lock().unwrap();
         (store.get(&id)?.clone(), store.config.settings.clone())
     };
-    launcher::launch_terminal(&profile, &settings, terminal.as_deref())
+    launcher::launch_terminal(&profile, &settings, tool, terminal.as_deref())
 }
 
 #[tauri::command]
-pub fn terminal_command(state: State<AppState>, id: String) -> Result<String> {
+pub fn terminal_command(state: State<AppState>, id: String, tool: CliTool) -> Result<String> {
     let profile = state.store.lock().unwrap().get(&id)?.clone();
-    let shim_on_path = crate::shims::status(&profile, &state.env)
+    let shim_on_path = crate::shims::status(&profile, tool, &state.env)
         .map(|s| s.installed && s.on_path)
         .unwrap_or(false);
-    Ok(launcher::terminal_command(&profile, shim_on_path))
+    launcher::terminal_command(&profile, tool, shim_on_path)
 }
 
 #[tauri::command]
@@ -190,38 +213,57 @@ pub fn install_shim(
     app: AppHandle,
     state: State<AppState>,
     id: String,
+    tool: CliTool,
 ) -> Result<crate::shims::ShimStatus> {
     let profile = state.store.lock().unwrap().get(&id)?.clone();
-    std::fs::create_dir_all(&profile.code.config_dir)?;
-    let status = crate::shims::install(&profile, &state.env)?;
-    set_shim_installed(&state, &id, true)?;
+    if let Some(config) = tool.config(&profile) {
+        std::fs::create_dir_all(&config.config_dir)?;
+    }
+    let status = crate::shims::install(&profile, tool, &state.env)?;
+    set_shim_installed(&state, &id, tool, true)?;
     notify_profiles_changed(&app, &state);
     Ok(status)
 }
 
 #[tauri::command]
-pub fn remove_shim(app: AppHandle, state: State<AppState>, id: String) -> Result<bool> {
+pub fn remove_shim(
+    app: AppHandle,
+    state: State<AppState>,
+    id: String,
+    tool: CliTool,
+) -> Result<bool> {
     let profile = state.store.lock().unwrap().get(&id)?.clone();
-    let removed = crate::shims::remove(&profile, &state.env)?;
-    set_shim_installed(&state, &id, false)?;
+    let removed = crate::shims::remove(&profile, tool, &state.env)?;
+    set_shim_installed(&state, &id, tool, false)?;
     notify_profiles_changed(&app, &state);
     Ok(removed)
 }
 
-fn set_shim_installed(state: &AppState, id: &str, installed: bool) -> Result<()> {
+fn set_shim_installed(state: &AppState, id: &str, tool: CliTool, installed: bool) -> Result<()> {
     let mut store = state.store.lock().unwrap();
     for p in store.config.profiles.iter_mut() {
         if p.id == id {
-            p.code.shim_installed = installed;
+            match tool {
+                CliTool::Claude => p.code.shim_installed = installed,
+                CliTool::Codex => {
+                    if let Some(codex) = p.codex.as_mut() {
+                        codex.shim_installed = installed;
+                    }
+                }
+            }
         }
     }
     store.save()
 }
 
 #[tauri::command]
-pub fn shim_status(state: State<AppState>, id: String) -> Result<crate::shims::ShimStatus> {
+pub fn shim_status(
+    state: State<AppState>,
+    id: String,
+    tool: CliTool,
+) -> Result<crate::shims::ShimStatus> {
     let profile = state.store.lock().unwrap().get(&id)?.clone();
-    crate::shims::status(&profile, &state.env)
+    crate::shims::status(&profile, tool, &state.env)
 }
 
 #[tauri::command]

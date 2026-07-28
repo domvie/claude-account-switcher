@@ -14,10 +14,10 @@
     "windows": [
       {
         "title": "Claude Account Switcher",
-        "width": 480,
-        "height": 640,
-        "minWidth": 400,
-        "minHeight": 480
+        "width": 680,
+        "height": 460,
+        "minWidth": 560,
+        "minHeight": 360
       }
     ],
     "security": {

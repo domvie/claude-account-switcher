@@ -20,7 +20,12 @@ pub fn focus_process(_pid: u32) -> Result<()> {
     Err(AppError::launch("Windows support is not implemented yet"))
 }
 
-pub fn launch_terminal(_terminal: &str, _config_dir: &Path) -> Result<()> {
+pub fn launch_terminal(
+    _terminal: &str,
+    _env_var: &str,
+    _config_dir: &Path,
+    _binary: &str,
+) -> Result<()> {
     Err(AppError::launch("Windows support is not implemented yet"))
 }
 

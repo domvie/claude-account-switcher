@@ -86,13 +86,19 @@ pub fn focus_process(pid: u32) -> Result<()> {
     Ok(())
 }
 
-/// Open a terminal window with CLAUDE_CONFIG_DIR exported and claude started.
-pub fn launch_terminal(terminal: &str, config_dir: &Path) -> Result<()> {
+/// Open a terminal window with the tool's config env var exported and the
+/// tool started (e.g. CLAUDE_CONFIG_DIR + claude, CODEX_HOME + codex).
+pub fn launch_terminal(
+    terminal: &str,
+    env_var: &str,
+    config_dir: &Path,
+    binary: &str,
+) -> Result<()> {
     let dir = config_dir.display();
-    let shell_cmd = format!("export CLAUDE_CONFIG_DIR=\"{dir}\" && claude");
+    let shell_cmd = format!("export {env_var}=\"{dir}\" && {binary}");
     let script = match terminal {
         "iTerm2" => format!(
-            "tell application \"iTerm2\"\n  create window with default profile command \"/bin/zsh -lc 'export CLAUDE_CONFIG_DIR=\\\"{dir}\\\" && claude'\"\n  activate\nend tell"
+            "tell application \"iTerm2\"\n  create window with default profile command \"/bin/zsh -lc 'export {env_var}=\\\"{dir}\\\" && {binary}'\"\n  activate\nend tell"
         ),
         // "auto" and "Terminal" both use Terminal.app.
         _ => format!(

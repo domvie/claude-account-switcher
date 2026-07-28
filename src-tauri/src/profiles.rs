@@ -37,6 +37,10 @@ pub struct Profile {
     pub is_default: bool,
     pub desktop: DesktopConfig,
     pub code: CodeConfig,
+    /// OpenAI Codex CLI (CODEX_HOME isolation). Optional so configs written
+    /// before this field existed keep loading; None means disabled.
+    #[serde(default)]
+    pub codex: Option<CodeConfig>,
     pub created_at: String,
     pub last_launched_at: Option<String>,
 }
@@ -80,6 +84,8 @@ pub struct NewProfile {
     pub color: Option<String>,
     pub desktop_enabled: bool,
     pub code_enabled: bool,
+    #[serde(default)]
+    pub codex_enabled: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -89,6 +95,8 @@ pub struct ProfileUpdate {
     pub color: Option<String>,
     pub desktop_enabled: Option<bool>,
     pub code_enabled: Option<bool>,
+    #[serde(default)]
+    pub codex_enabled: Option<bool>,
 }
 
 pub struct Store {
@@ -102,6 +110,7 @@ pub struct Env {
     pub app_support: PathBuf,
     pub default_claude_desktop_data: PathBuf,
     pub default_claude_code_config: PathBuf,
+    pub default_codex_config: PathBuf,
 }
 
 impl Env {
@@ -113,6 +122,9 @@ impl Env {
         let default_code = std::env::var_os("CLAUDE_CONFIG_DIR")
             .map(PathBuf::from)
             .unwrap_or_else(|| home.join(".claude"));
+        let default_codex = std::env::var_os("CODEX_HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| home.join(".codex"));
         #[cfg(target_os = "macos")]
         let app_support = home.join("Library/Application Support");
         #[cfg(target_os = "windows")]
@@ -128,6 +140,7 @@ impl Env {
             app_support,
             default_claude_desktop_data: default_desktop,
             default_claude_code_config: default_code,
+            default_codex_config: default_codex,
         })
     }
 
@@ -137,6 +150,10 @@ impl Env {
 
     fn code_dir_for(&self, slug: &str) -> PathBuf {
         self.home.join(format!(".claude-{slug}"))
+    }
+
+    pub fn codex_dir_for(&self, slug: &str) -> PathBuf {
+        self.home.join(format!(".codex-{slug}"))
     }
 }
 
@@ -226,6 +243,12 @@ impl Store {
                 shim_name: String::new(),
                 shim_installed: false,
             },
+            codex: Some(CodeConfig {
+                enabled: true,
+                config_dir: env.default_codex_config.clone(),
+                shim_name: String::new(),
+                shim_installed: false,
+            }),
             created_at: now_iso(),
             last_launched_at: None,
         }
@@ -234,6 +257,18 @@ impl Store {
     fn ensure_default_profile(&mut self, env: &Env) {
         if !self.config.profiles.iter().any(|p| p.is_default) {
             self.config.profiles.insert(0, Self::default_profile(env));
+        }
+        // Configs written before the codex field existed: backfill the
+        // default profile so it points at the real ~/.codex.
+        if let Some(p) = self.config.profiles.iter_mut().find(|p| p.is_default) {
+            if p.codex.is_none() {
+                p.codex = Some(CodeConfig {
+                    enabled: true,
+                    config_dir: env.default_codex_config.clone(),
+                    shim_name: String::new(),
+                    shim_installed: false,
+                });
+            }
         }
     }
 
@@ -300,6 +335,12 @@ impl Store {
                 shim_name: format!("claude-{slug}"),
                 shim_installed: false,
             },
+            codex: Some(CodeConfig {
+                enabled: input.codex_enabled,
+                config_dir: env.codex_dir_for(&slug),
+                shim_name: format!("codex-{slug}"),
+                shim_installed: false,
+            }),
             created_at: now_iso(),
             last_launched_at: None,
         };
@@ -308,7 +349,7 @@ impl Store {
         Ok(profile)
     }
 
-    pub fn update(&mut self, id: &str, patch: ProfileUpdate) -> Result<Profile> {
+    pub fn update(&mut self, id: &str, patch: ProfileUpdate, env: &Env) -> Result<Profile> {
         {
             let is_default = self.get(id)?.is_default;
             let p = self.get_mut(id)?;
@@ -330,6 +371,20 @@ impl Store {
                 }
                 if let Some(enabled) = patch.code_enabled {
                     p.code.enabled = enabled;
+                }
+                if let Some(enabled) = patch.codex_enabled {
+                    let slug = p.slug.clone();
+                    match p.codex.as_mut() {
+                        Some(codex) => codex.enabled = enabled,
+                        None => {
+                            p.codex = Some(CodeConfig {
+                                enabled,
+                                config_dir: env.codex_dir_for(&slug),
+                                shim_name: format!("codex-{slug}"),
+                                shim_installed: false,
+                            })
+                        }
+                    }
                 }
             }
         }
@@ -375,6 +430,7 @@ mod tests {
             app_support: root.join("appsupport"),
             default_claude_desktop_data: root.join("appsupport/Claude"),
             default_claude_code_config: root.join("home/.claude"),
+            default_codex_config: root.join("home/.codex"),
         }
     }
 
@@ -404,6 +460,7 @@ mod tests {
                     color: None,
                     desktop_enabled: true,
                     code_enabled: true,
+                    codex_enabled: true,
                 },
                 &env,
             )
@@ -415,6 +472,30 @@ mod tests {
         assert_eq!(p.code.shim_name, "claude-work-stuff");
         assert!(p.desktop.user_data_dir.ends_with("Claude-work-stuff"));
         assert!(p.code.config_dir.ends_with(".claude-work-stuff"));
+        let codex = p.codex.as_ref().unwrap();
+        assert_eq!(codex.shim_name, "codex-work-stuff");
+        assert!(codex.config_dir.ends_with(".codex-work-stuff"));
+    }
+
+    #[test]
+    fn config_without_codex_field_loads_and_backfills_default() {
+        let dir = tempfile::tempdir().unwrap();
+        let env = test_env(dir.path());
+        let path = dir.path().join("config.json");
+        // Write a config, then strip the codex fields to simulate a
+        // pre-codex config file.
+        Store::load(path.clone(), &env).unwrap().save().unwrap();
+        let raw = std::fs::read_to_string(&path).unwrap();
+        let mut v: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        for p in v["profiles"].as_array_mut().unwrap() {
+            p.as_object_mut().unwrap().remove("codex");
+        }
+        std::fs::write(&path, serde_json::to_string(&v).unwrap()).unwrap();
+
+        let store = Store::load(path, &env).unwrap();
+        let default = &store.config.profiles[0];
+        let codex = default.codex.as_ref().unwrap();
+        assert!(codex.config_dir.ends_with(".codex"));
     }
 
     #[test]
@@ -425,6 +506,7 @@ mod tests {
             color: None,
             desktop_enabled: true,
             code_enabled: false,
+            codex_enabled: false,
         };
         store.create(input.clone(), &env).unwrap();
         let err = store.create(input, &env).unwrap_err();
@@ -447,6 +529,7 @@ mod tests {
                     color: None,
                     desktop_enabled: true,
                     code_enabled: true,
+                    codex_enabled: false,
                 },
                 &env,
             )
@@ -460,7 +543,9 @@ mod tests {
                     color: None,
                     desktop_enabled: None,
                     code_enabled: None,
+                    codex_enabled: None,
                 },
+                &env,
             )
             .unwrap();
         assert_eq!(updated.name, "Job");

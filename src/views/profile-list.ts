@@ -52,9 +52,11 @@ function usageBar(label: string, pct: number, resetsAt: string | null): string {
 }
 
 function renderRow(p: Profile): string {
+  const codexEnabled = p.codex?.enabled ?? false;
   const badges = [
     p.desktop.enabled ? `<span class="badge">Desktop</span>` : "",
     p.code.enabled ? `<span class="badge">Code</span>` : "",
+    codexEnabled ? `<span class="badge">Codex</span>` : "",
     p.isDefault ? `<span class="badge badge-muted">default</span>` : "",
   ].join("");
   return `
@@ -73,7 +75,12 @@ function renderRow(p: Profile): string {
         }
         ${
           p.code.enabled
-            ? `<button class="btn" data-action="launch-terminal" title="Open a terminal with this profile">Terminal</button>`
+            ? `<button class="btn" data-action="launch-terminal" title="Claude Code command for this profile">Code</button>`
+            : ""
+        }
+        ${
+          codexEnabled
+            ? `<button class="btn" data-action="launch-codex" title="Codex command for this profile">Codex</button>`
             : ""
         }
         <button class="btn btn-icon" data-action="edit" title="Edit profile">✎</button>

@@ -1,5 +1,5 @@
 import { api, onProfilesChanged } from "./api";
-import type { Profile } from "./types";
+import type { CliTool, Profile } from "./types";
 import { isAppError } from "./types";
 import { renderProfileList, renderUsage } from "./views/profile-list";
 import {
@@ -60,6 +60,49 @@ function profileFromRow(el: Element): Profile | undefined {
   return profiles.find((p) => p.id === id);
 }
 
+async function openTerminalDialog(profile: Profile, tool: CliTool): Promise<void> {
+  const toolLabel = tool === "claude" ? "Claude Code" : "Codex";
+  const shimName =
+    (tool === "claude" ? profile.code.shimName : profile.codex?.shimName) ?? "";
+  const command = await api.terminalCommand(profile.id, tool);
+  const shim = profile.isDefault
+    ? { installed: false, path: null, onPath: false, drifted: false }
+    : await api.shimStatus(profile.id, tool);
+  showTerminalDialog(
+    profile,
+    toolLabel,
+    shimName,
+    command,
+    shim,
+    async (cmd) => {
+      try {
+        await writeText(cmd);
+        toast("Command copied — paste it into your terminal");
+      } catch (e) {
+        reportError(e);
+      }
+    },
+    async (terminal) => {
+      try {
+        await api.launchTerminal(profile.id, tool, terminal);
+        toast(`Opening ${terminal} (${profile.name})`);
+      } catch (e) {
+        reportError(e);
+      }
+    },
+    async () => {
+      try {
+        const status = await api.installShim(profile.id, tool);
+        toast(`Installed ${shimName}`);
+        return status;
+      } catch (e) {
+        reportError(e);
+        throw e;
+      }
+    },
+  );
+}
+
 async function handleAction(action: string, profile: Profile): Promise<void> {
   switch (action) {
     case "launch-desktop": {
@@ -74,44 +117,12 @@ async function handleAction(action: string, profile: Profile): Promise<void> {
       }
       break;
     }
-    case "launch-terminal": {
-      const command = await api.terminalCommand(profile.id);
-      const shim = profile.isDefault
-        ? { installed: false, path: null, onPath: false, drifted: false }
-        : await api.shimStatus(profile.id);
-      showTerminalDialog(
-        profile,
-        command,
-        shim,
-        async (cmd) => {
-          try {
-            await writeText(cmd);
-            toast("Command copied — paste it into your terminal");
-          } catch (e) {
-            reportError(e);
-          }
-        },
-        async (terminal) => {
-          try {
-            await api.launchTerminal(profile.id, terminal);
-            toast(`Opening ${terminal} (${profile.name})`);
-          } catch (e) {
-            reportError(e);
-          }
-        },
-        async () => {
-          try {
-            const status = await api.installShim(profile.id);
-            toast(`Installed ${profile.code.shimName}`);
-            return status;
-          } catch (e) {
-            reportError(e);
-            throw e;
-          }
-        },
-      );
+    case "launch-terminal":
+      await openTerminalDialog(profile, "claude");
       break;
-    }
+    case "launch-codex":
+      await openTerminalDialog(profile, "codex");
+      break;
     case "edit":
       showEditDialog(profile, async (patch) => {
         try {

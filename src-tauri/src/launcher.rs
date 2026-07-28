@@ -5,6 +5,7 @@ use serde::Serialize;
 use crate::error::{AppError, Result};
 use crate::platform;
 use crate::profiles::{Profile, Settings};
+use crate::shims::CliTool;
 
 #[derive(Debug, Clone, Copy, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -70,30 +71,41 @@ pub fn launch_desktop(profile: &Profile, settings: &Settings) -> Result<LaunchOu
 pub fn launch_terminal(
     profile: &Profile,
     settings: &Settings,
+    tool: CliTool,
     terminal: Option<&str>,
 ) -> Result<()> {
-    if !profile.code.enabled {
-        return Err(AppError::validation(format!(
-            "profile '{}' has Claude Code disabled",
-            profile.name
-        )));
-    }
-    std::fs::create_dir_all(&profile.code.config_dir)?;
+    let config = tool.config(profile).filter(|c| c.enabled).ok_or_else(|| {
+        AppError::validation(format!(
+            "profile '{}' has {} disabled",
+            profile.name,
+            tool.binary()
+        ))
+    })?;
+    std::fs::create_dir_all(&config.config_dir)?;
     let terminal = terminal.unwrap_or(&settings.terminal);
-    platform::launch_terminal(terminal, &profile.code.config_dir)
+    platform::launch_terminal(terminal, tool.env_var(), &config.config_dir, tool.binary())
 }
 
 /// The command a user pastes into their own terminal: the shim when it's
 /// installed and on PATH, otherwise the explicit env-var form.
-pub fn terminal_command(profile: &Profile, shim_on_path: bool) -> String {
+pub fn terminal_command(profile: &Profile, tool: CliTool, shim_on_path: bool) -> Result<String> {
     if profile.is_default {
-        return "claude".into();
+        return Ok(tool.binary().into());
     }
-    if profile.code.shim_installed && shim_on_path {
-        return profile.code.shim_name.clone();
+    let config = tool.config(profile).ok_or_else(|| {
+        AppError::validation(format!(
+            "profile '{}' has no {} configuration",
+            profile.name,
+            tool.binary()
+        ))
+    })?;
+    if config.shim_installed && shim_on_path {
+        return Ok(config.shim_name.clone());
     }
-    format!(
-        "CLAUDE_CONFIG_DIR=\"{}\" claude",
-        profile.code.config_dir.display()
-    )
+    Ok(format!(
+        "{}=\"{}\" {}",
+        tool.env_var(),
+        config.config_dir.display(),
+        tool.binary()
+    ))
 }

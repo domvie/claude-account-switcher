@@ -33,6 +33,7 @@ export function showCreateDialog(onSubmit: (input: NewProfile) => void): void {
       </div>
       <label class="check"><input type="checkbox" name="desktop" checked /> Claude Desktop</label>
       <label class="check"><input type="checkbox" name="code" checked /> Claude Code (terminal)</label>
+      <label class="check"><input type="checkbox" name="codex" /> OpenAI Codex (terminal)</label>
       <menu>
         <button value="cancel" class="btn">Cancel</button>
         <button value="ok" class="btn btn-primary">Create</button>
@@ -48,6 +49,7 @@ export function showCreateDialog(onSubmit: (input: NewProfile) => void): void {
       color: String(data.get("color") ?? COLORS[1]),
       desktopEnabled: data.get("desktop") === "on",
       codeEnabled: data.get("code") === "on",
+      codexEnabled: data.get("codex") === "on",
     });
   });
 }
@@ -73,7 +75,8 @@ export function showEditDialog(
           ? `<p class="hint">This is the default profile — it uses your existing Claude data and can't be disabled or deleted.</p>`
           : `
       <label class="check"><input type="checkbox" name="desktop" ${profile.desktop.enabled ? "checked" : ""} /> Claude Desktop</label>
-      <label class="check"><input type="checkbox" name="code" ${profile.code.enabled ? "checked" : ""} /> Claude Code (terminal)</label>`
+      <label class="check"><input type="checkbox" name="code" ${profile.code.enabled ? "checked" : ""} /> Claude Code (terminal)</label>
+      <label class="check"><input type="checkbox" name="codex" ${profile.codex?.enabled ? "checked" : ""} /> OpenAI Codex (terminal)</label>`
       }
       <menu>
         <button value="cancel" class="btn">Cancel</button>
@@ -90,6 +93,7 @@ export function showEditDialog(
       color: String(data.get("color") ?? profile.color),
       desktopEnabled: profile.isDefault ? null : data.get("desktop") === "on",
       codeEnabled: profile.isDefault ? null : data.get("code") === "on",
+      codexEnabled: profile.isDefault ? null : data.get("codex") === "on",
     });
   });
 }
@@ -99,6 +103,8 @@ export function showEditDialog(
 /// shim management.
 export function showTerminalDialog(
   profile: Profile,
+  toolLabel: string,
+  shimName: string,
   command: string,
   shim: ShimStatus,
   onCopy: (command: string) => void,
@@ -108,19 +114,19 @@ export function showTerminalDialog(
   const shimSection = (s: ShimStatus): string => {
     if (profile.isDefault) return "";
     if (!s.installed) {
-      return `<p class="hint">Tip: install a <code>${esc(profile.code.shimName)}</code> command so you don't need the env var:
+      return `<p class="hint">Tip: install a <code>${esc(shimName)}</code> command so you don't need the env var:
         <button type="button" class="btn" id="install-shim">Install shim</button></p>`;
     }
     const pathHint = s.onPath
       ? ""
       : `<br/>⚠ <code>${esc(s.path ?? "")}</code> is not on your PATH — add:
          <code class="selectable">export PATH="$HOME/.local/bin:$PATH"</code>`;
-    return `<p class="hint">✓ <code>${esc(profile.code.shimName)}</code> is installed${pathHint}</p>`;
+    return `<p class="hint">✓ <code>${esc(shimName)}</code> is installed${pathHint}</p>`;
   };
 
   const dialog = openDialog(`
     <form method="dialog" class="dialog-form">
-      <h2>Claude Code — ${esc(profile.name)}</h2>
+      <h2>${esc(toolLabel)} — ${esc(profile.name)}</h2>
       <p class="hint">Run this in any terminal, from whatever directory you want to work in:</p>
       <div class="command-box"><code>${esc(command)}</code></div>
       <div id="shim-section">${shimSection(shim)}</div>
@@ -186,11 +192,16 @@ export function showDeleteDialog(
       <label class="check"><input type="checkbox" name="desktopDir" /> Move Claude Desktop data to Trash<br/><code>${esc(profile.desktop.userDataDir)}</code></label>
       <label class="check"><input type="checkbox" name="codeDir" /> Move Claude Code config to Trash<br/><code>${esc(profile.code.configDir)}</code></label>
       ${
+        profile.codex
+          ? `<label class="check"><input type="checkbox" name="codexDir" /> Move Codex config to Trash<br/><code>${esc(profile.codex.configDir)}</code></label>`
+          : ""
+      }
+      ${
         platform === "macos"
           ? `<label class="check"><input type="checkbox" name="keychain" /> Remove its Claude Code login from the Keychain</label>`
           : ""
       }
-      <label class="check"><input type="checkbox" name="shim" checked /> Remove the <code>${esc(profile.code.shimName)}</code> shell command</label>
+      <label class="check"><input type="checkbox" name="shim" checked /> Remove its shell commands (<code>${esc(profile.code.shimName)}</code>${profile.codex ? `, <code>${esc(profile.codex.shimName)}</code>` : ""})</label>
       <menu>
         <button value="cancel" class="btn">Cancel</button>
         <button value="ok" class="btn btn-danger-solid">Delete profile</button>
@@ -204,6 +215,7 @@ export function showDeleteDialog(
     onConfirm({
       deleteDesktopDir: data.get("desktopDir") === "on",
       deleteCodeDir: data.get("codeDir") === "on",
+      deleteCodexDir: data.get("codexDir") === "on",
       deleteKeychainEntry: data.get("keychain") === "on",
       removeShim: data.get("shim") === "on",
     });

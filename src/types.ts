@@ -18,9 +18,12 @@ export interface Profile {
   isDefault: boolean;
   desktop: DesktopConfig;
   code: CodeConfig;
+  codex: CodeConfig | null;
   createdAt: string;
   lastLaunchedAt: string | null;
 }
+
+export type CliTool = "claude" | "codex";
 
 export interface Settings {
   claudeDesktopPath: string | null;
@@ -35,6 +38,7 @@ export interface NewProfile {
   color: string | null;
   desktopEnabled: boolean;
   codeEnabled: boolean;
+  codexEnabled: boolean;
 }
 
 export interface ProfileUpdate {
@@ -42,11 +46,13 @@ export interface ProfileUpdate {
   color?: string | null;
   desktopEnabled?: boolean | null;
   codeEnabled?: boolean | null;
+  codexEnabled?: boolean | null;
 }
 
 export interface DeleteOptions {
   deleteDesktopDir: boolean;
   deleteCodeDir: boolean;
+  deleteCodexDir: boolean;
   deleteKeychainEntry: boolean;
   removeShim: boolean;
 }
@@ -54,6 +60,7 @@ export interface DeleteOptions {
 export interface DeleteReport {
   desktopDirDeleted: boolean;
   codeDirDeleted: boolean;
+  codexDirDeleted: boolean;
   keychainEntryDeleted: boolean;
   shimRemoved: boolean;
   warnings: string[];
