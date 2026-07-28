@@ -19,6 +19,18 @@ skills, and plugins.
   The app installs per-profile shell shims (e.g. `claude-work`) and can open a
   terminal pre-configured for a profile.
 
+## Known quirks
+
+- **Email login codes land in the wrong window.** When you log a new profile in
+  by email, the "Sign in" button in the verification email opens a `claude://`
+  link — and the OS routes that to your *main* Claude instance, so the code
+  shows up there. This can't be intercepted; just copy the code from wherever
+  it appears into the login screen of the *new* window. The app shows a
+  reminder on a profile's first login.
+- **Claude Code launches start in your home directory.** The recommended flow
+  is the profile's **Terminal** dialog: copy the shown command and paste it in
+  your own terminal, in the project directory you actually want to work in.
+
 ## Development
 
 ```sh

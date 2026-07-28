@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 
 use crate::error::{AppError, Result};
-use crate::launcher::{self, LaunchResult};
+use crate::launcher::{self, LaunchOutcome};
 use crate::platform;
 use crate::profiles::{Env, NewProfile, Profile, ProfileUpdate, Settings, Store};
 
@@ -121,7 +121,7 @@ pub fn delete_profile(
 }
 
 #[tauri::command]
-pub fn launch_desktop(app: AppHandle, state: State<AppState>, id: String) -> Result<LaunchResult> {
+pub fn launch_desktop(app: AppHandle, state: State<AppState>, id: String) -> Result<LaunchOutcome> {
     let (profile, settings) = {
         let store = state.store.lock().unwrap();
         (store.get(&id)?.clone(), store.config.settings.clone())
@@ -133,12 +133,21 @@ pub fn launch_desktop(app: AppHandle, state: State<AppState>, id: String) -> Res
 }
 
 #[tauri::command]
-pub fn launch_terminal(state: State<AppState>, id: String) -> Result<()> {
+pub fn launch_terminal(state: State<AppState>, id: String, terminal: Option<String>) -> Result<()> {
     let (profile, settings) = {
         let store = state.store.lock().unwrap();
         (store.get(&id)?.clone(), store.config.settings.clone())
     };
-    launcher::launch_terminal(&profile, &settings)
+    launcher::launch_terminal(&profile, &settings, terminal.as_deref())
+}
+
+#[tauri::command]
+pub fn terminal_command(state: State<AppState>, id: String) -> Result<String> {
+    let profile = state.store.lock().unwrap().get(&id)?.clone();
+    let shim_on_path = crate::shims::status(&profile, &state.env)
+        .map(|s| s.installed && s.on_path)
+        .unwrap_or(false);
+    Ok(launcher::terminal_command(&profile, shim_on_path))
 }
 
 #[tauri::command]

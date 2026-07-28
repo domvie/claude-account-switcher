@@ -72,7 +72,10 @@ export interface EnvInfo {
   claudeCodeOnPath: boolean;
 }
 
-export type LaunchResult = "launched" | "focusedExisting";
+export interface LaunchOutcome {
+  kind: "launched" | "focusedExisting";
+  firstLogin: boolean;
+}
 
 export interface AppError {
   kind: "not-found" | "validation" | "io" | "launch" | "internal";

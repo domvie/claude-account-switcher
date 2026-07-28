@@ -250,6 +250,27 @@ dialog::backdrop {
   margin: 0 0 12px;
 }
 
+.command-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  overflow-x: auto;
+}
+
+.command-box code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  white-space: nowrap;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.menu-left {
+  justify-content: flex-start;
+}
+
 menu {
   display: flex;
   justify-content: flex-end;

@@ -2,7 +2,14 @@ import { api, onProfilesChanged } from "./api";
 import type { Profile } from "./types";
 import { isAppError } from "./types";
 import { renderProfileList } from "./views/profile-list";
-import { showCreateDialog, showDeleteDialog, showEditDialog } from "./views/dialogs";
+import {
+  showCreateDialog,
+  showDeleteDialog,
+  showEditDialog,
+  showFirstLoginHint,
+  showTerminalDialog,
+} from "./views/dialogs";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 
 let profiles: Profile[] = [];
 let platform = "macos";
@@ -39,18 +46,41 @@ function profileFromRow(el: Element): Profile | undefined {
 async function handleAction(action: string, profile: Profile): Promise<void> {
   switch (action) {
     case "launch-desktop": {
-      const result = await api.launchDesktop(profile.id);
+      const outcome = await api.launchDesktop(profile.id);
       toast(
-        result === "focusedExisting"
+        outcome.kind === "focusedExisting"
           ? `${profile.name} is already running — brought to front`
           : `Launching Claude Desktop (${profile.name})`,
       );
+      if (outcome.firstLogin) {
+        showFirstLoginHint(profile);
+      }
       break;
     }
-    case "launch-terminal":
-      await api.launchTerminal(profile.id);
-      toast(`Opening terminal (${profile.name})`);
+    case "launch-terminal": {
+      const command = await api.terminalCommand(profile.id);
+      showTerminalDialog(
+        profile,
+        command,
+        async (cmd) => {
+          try {
+            await writeText(cmd);
+            toast("Command copied — paste it into your terminal");
+          } catch (e) {
+            reportError(e);
+          }
+        },
+        async (terminal) => {
+          try {
+            await api.launchTerminal(profile.id, terminal);
+            toast(`Opening ${terminal} (${profile.name})`);
+          } catch (e) {
+            reportError(e);
+          }
+        },
+      );
       break;
+    }
     case "edit":
       showEditDialog(profile, async (patch) => {
         try {

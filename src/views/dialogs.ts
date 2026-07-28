@@ -88,6 +88,59 @@ export function showEditDialog(
   });
 }
 
+/// Shown when Claude Code is requested for a profile: the command to paste
+/// into the user's own terminal, plus optional one-click launchers.
+export function showTerminalDialog(
+  profile: Profile,
+  command: string,
+  onCopy: (command: string) => void,
+  onOpen: (terminal: "Terminal" | "iTerm2") => void,
+): void {
+  const dialog = openDialog(`
+    <form method="dialog" class="dialog-form">
+      <h2>Claude Code — ${esc(profile.name)}</h2>
+      <p class="hint">Run this in any terminal, from whatever directory you want to work in:</p>
+      <div class="command-box"><code>${esc(command)}</code></div>
+      <menu class="menu-left">
+        <button value="copy" class="btn btn-primary">Copy command</button>
+        <button value="open-terminal" class="btn">Open in Terminal</button>
+        <button value="open-iterm" class="btn">Open in iTerm2</button>
+      </menu>
+    </form>
+  `);
+  dialog.addEventListener("close", () => {
+    switch (dialog.returnValue) {
+      case "copy":
+        onCopy(command);
+        break;
+      case "open-terminal":
+        onOpen("Terminal");
+        break;
+      case "open-iterm":
+        onOpen("iTerm2");
+        break;
+    }
+  });
+}
+
+/// First launch of a profile that has never logged in: explain the
+/// email-verification deep-link quirk before the user hits it.
+export function showFirstLoginHint(profile: Profile): void {
+  openDialog(`
+    <form method="dialog" class="dialog-form">
+      <h2>First login for ${esc(profile.name)}</h2>
+      <p class="hint">A new Claude window is opening — log in there with this profile's account.</p>
+      <p class="hint"><strong>If you sign in by email:</strong> the "Sign in" button in the
+      verification email opens your <em>main</em> Claude window and shows the code there.
+      That's a macOS limitation (the link can only open one app). Just copy the code from
+      wherever it appears and paste it into the <em>new</em> window's login screen.</p>
+      <menu>
+        <button value="ok" class="btn btn-primary">Got it</button>
+      </menu>
+    </form>
+  `);
+}
+
 export function showDeleteDialog(
   profile: Profile,
   platform: string,

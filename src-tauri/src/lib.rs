@@ -21,6 +21,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(log::LevelFilter::Info)
@@ -63,6 +64,7 @@ pub fn run() {
             commands::delete_profile,
             commands::launch_desktop,
             commands::launch_terminal,
+            commands::terminal_command,
             commands::install_shim,
             commands::remove_shim,
             commands::shim_status,

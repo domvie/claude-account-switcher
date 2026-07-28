@@ -4,7 +4,7 @@ import type {
   DeleteOptions,
   DeleteReport,
   EnvInfo,
-  LaunchResult,
+  LaunchOutcome,
   NewProfile,
   Profile,
   ProfileUpdate,
@@ -19,8 +19,10 @@ export const api = {
     invoke<Profile>("update_profile", { id, patch }),
   deleteProfile: (id: string, opts: DeleteOptions) =>
     invoke<DeleteReport>("delete_profile", { id, opts }),
-  launchDesktop: (id: string) => invoke<LaunchResult>("launch_desktop", { id }),
-  launchTerminal: (id: string) => invoke<void>("launch_terminal", { id }),
+  launchDesktop: (id: string) => invoke<LaunchOutcome>("launch_desktop", { id }),
+  launchTerminal: (id: string, terminal?: string) =>
+    invoke<void>("launch_terminal", { id, terminal: terminal ?? null }),
+  terminalCommand: (id: string) => invoke<string>("terminal_command", { id }),
   installShim: (id: string) => invoke<ShimStatus>("install_shim", { id }),
   removeShim: (id: string) => invoke<boolean>("remove_shim", { id }),
   shimStatus: (id: string) => invoke<ShimStatus>("shim_status", { id }),
