@@ -7,6 +7,8 @@ sessions, MCP servers, skills, and plugins.
 
 > **Status:** early development (pre-release). macOS first; Windows next; Linux planned (beta).
 
+![Claude Account Switcher](screenshot.png)
+
 ## Install
 
 Grab the build for your platform from [Releases](../../releases). The builds are

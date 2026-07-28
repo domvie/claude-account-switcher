@@ -27,7 +27,9 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>, profiles: &[Profile]) -> tauri::Re
 pub fn setup(app: &AppHandle, profiles: &[Profile]) -> tauri::Result<()> {
     let menu = build_menu(app, profiles)?;
     TrayIconBuilder::with_id(TRAY_ID)
-        .icon(app.default_window_icon().unwrap().clone())
+        // Dedicated monochrome glyph: template rendering uses the alpha
+        // channel, so the full app icon would show as a solid blob.
+        .icon(tauri::include_image!("icons/tray@2x.png"))
         .icon_as_template(true)
         .menu(&menu)
         .show_menu_on_left_click(true)

@@ -1,0 +1,28 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34322d"/>
+      <stop offset="1" stop-color="#211f1c"/>
+    </linearGradient>
+    <linearGradient id="warm" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e58a68"/>
+      <stop offset="1" stop-color="#c96442"/>
+    </linearGradient>
+    <linearGradient id="cool" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7fb0e0"/>
+      <stop offset="1" stop-color="#5a86b8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- macOS-style squircle with standard ~10% transparent margin -->
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)"/>
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="none"
+        stroke="#ffffff" stroke-opacity="0.06" stroke-width="6"/>
+
+  <!-- back profile circle (cool) -->
+  <circle cx="604" cy="576" r="196" fill="url(#cool)"/>
+
+  <!-- front profile circle (warm), separated by a bg-colored ring -->
+  <circle cx="430" cy="452" r="220" fill="#2a2825"/>
+  <circle cx="430" cy="452" r="196" fill="url(#warm)"/>
+</svg>

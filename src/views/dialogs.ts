@@ -35,7 +35,7 @@ export function showCreateDialog(onSubmit: (input: NewProfile) => void): void {
       <label class="check"><input type="checkbox" name="code" checked /> Claude Code (terminal)</label>
       <label class="check"><input type="checkbox" name="codex" /> OpenAI Codex (terminal)</label>
       <menu>
-        <button value="cancel" class="btn">Cancel</button>
+        <button value="cancel" class="btn" formnovalidate>Cancel</button>
         <button value="ok" class="btn btn-primary">Create</button>
       </menu>
     </form>
@@ -79,7 +79,7 @@ export function showEditDialog(
       <label class="check"><input type="checkbox" name="codex" ${profile.codex?.enabled ? "checked" : ""} /> OpenAI Codex (terminal)</label>`
       }
       <menu>
-        <button value="cancel" class="btn">Cancel</button>
+        <button value="cancel" class="btn" formnovalidate>Cancel</button>
         <button value="ok" class="btn btn-primary">Save</button>
       </menu>
     </form>

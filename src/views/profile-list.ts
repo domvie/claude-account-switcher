@@ -53,12 +53,9 @@ function usageBar(label: string, pct: number, resetsAt: string | null): string {
 
 function renderRow(p: Profile): string {
   const codexEnabled = p.codex?.enabled ?? false;
-  const badges = [
-    p.desktop.enabled ? `<span class="badge">Desktop</span>` : "",
-    p.code.enabled ? `<span class="badge">Code</span>` : "",
-    codexEnabled ? `<span class="badge">Codex</span>` : "",
-    p.isDefault ? `<span class="badge badge-muted">default</span>` : "",
-  ].join("");
+  // Enabled tools are already visible as launch buttons; only "default"
+  // carries extra information.
+  const badges = p.isDefault ? `<span class="badge badge-muted">default</span>` : "";
   return `
     <li class="profile-row" data-id="${esc(p.id)}">
       <span class="dot" style="background:${esc(p.color)}"></span>
@@ -70,12 +67,12 @@ function renderRow(p: Profile): string {
       <div class="profile-actions">
         ${
           p.desktop.enabled
-            ? `<button class="btn" data-action="launch-desktop" title="Launch Claude Desktop">Desktop</button>`
+            ? `<button class="btn" data-action="launch-desktop" title="Launch Claude Desktop">Claude Desktop</button>`
             : ""
         }
         ${
           p.code.enabled
-            ? `<button class="btn" data-action="launch-terminal" title="Claude Code command for this profile">Code</button>`
+            ? `<button class="btn" data-action="launch-terminal" title="Claude Code command for this profile">Claude Code</button>`
             : ""
         }
         ${
