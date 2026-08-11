@@ -25,21 +25,6 @@ xattr -cr "/Applications/Claude Account Switcher.app"
 
 Windows and Linux builds are not published yet — see the status note above.
 
-## How it works
-
-- **Claude Desktop** is an Electron app, so each profile gets its own
-  `--user-data-dir`, which keeps login sessions fully separate.
-  ⚠️ This is standard Electron behavior but **not officially supported by Anthropic**
-  and could break with any Claude Desktop update.
-- **Claude Code** supports the official `CLAUDE_CONFIG_DIR` environment variable.
-  Each profile gets its own config dir; credentials are isolated per directory
-  (on macOS, Claude Code namespaces its Keychain entry per config dir automatically).
-  The app installs per-profile shell shims (e.g. `claude-work`) and can open a
-  terminal pre-configured for a profile.
-- **OpenAI Codex CLI** supports the `CODEX_HOME` environment variable the same
-  way (`auth.json` and config live inside it), so profiles get `codex-<name>`
-  shims too. The ChatGPT desktop app is native (not Electron), so there is no
-  desktop-app equivalent for Codex.
 
 ## Known quirks
 
