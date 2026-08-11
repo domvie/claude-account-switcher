@@ -10,25 +10,19 @@ permissions:
 
 jobs:
   build:
+    # macOS only: src-tauri/src/platform/{windows,linux}.rs are still stubs, so
+    # shipping those bundles would hand users an app that cannot launch anything.
+    # CI keeps cargo-checking all three platforms; add them back here once the
+    # platform layer is actually implemented.
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: macos-latest
             args: --target universal-apple-darwin
-          - platform: windows-latest
-            args: ""
-          - platform: ubuntu-22.04
-            args: ""
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v7
-
-      - name: Install Linux system deps (Tauri)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - uses: actions/setup-node@v7
         with:
@@ -52,10 +46,21 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "Claude Account Switcher ${{ github.ref_name }}"
           releaseBody: |
-            See the README for install notes:
-            - macOS builds are unsigned — after installing, either right-click the app and choose Open, use System Settings → Privacy & Security → "Open Anyway", or run `xattr -cr "/Applications/Claude Account Switcher.app"`.
-            - Windows builds are unsigned — SmartScreen will ask; choose "More info" → "Run anyway".
-            - Linux builds are beta.
+            **macOS only.** Windows and Linux are not implemented yet — the app
+            builds on those platforms, but launching Claude/Codex is stubbed out,
+            so no bundles are published for them.
+
+            The macOS build is a universal binary and is **unsigned** (no paid
+            developer certificate), so Gatekeeper will object once. Either
+            right-click the app and choose **Open**, use System Settings →
+            Privacy & Security → **"Open Anyway"** after the first blocked
+            launch, or run:
+
+            ```sh
+            xattr -cr "/Applications/Claude Account Switcher.app"
+            ```
+
+            See the README for how profile isolation works and for known quirks.
           releaseDraft: true
           prerelease: ${{ contains(github.ref_name, '-') }}
           args: ${{ matrix.args }}

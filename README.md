@@ -5,20 +5,25 @@ profiles ("Personal", "Work", …) and launches **Claude Desktop**, **Claude Cod
 **OpenAI Codex CLI** under the selected profile — each with its own login, settings,
 sessions, MCP servers, skills, and plugins.
 
-> **Status:** early development (pre-release). macOS first; Windows next; Linux planned (beta).
+> **Status:** early development. **macOS only** — the code compiles on Windows and
+> Linux, but the platform layer there is still stubbed out, so launching does not
+> work yet and no builds are published for those platforms. Contributions welcome.
 
 ![Claude Account Switcher](screenshot.png)
 
 ## Install
 
-Grab the build for your platform from [Releases](../../releases). The builds are
-**unsigned** (no paid developer certificates yet), so the OS will object once:
+**macOS only for now.** Grab the `.dmg` (universal binary) from
+[Releases](../../releases). It is **unsigned** (no paid developer certificate
+yet), so Gatekeeper will object once: after moving the app to Applications,
+either right-click → **Open**, or go to System Settings → Privacy & Security →
+**"Open Anyway"** after the first blocked launch. Alternatively:
 
-- **macOS**: after moving the app to Applications, either right-click → **Open**,
-  or go to System Settings → Privacy & Security → **"Open Anyway"** after the
-  first blocked launch. Alternatively: `xattr -cr "/Applications/Claude Account Switcher.app"`.
-- **Windows**: SmartScreen will warn — click **More info** → **Run anyway**.
-- **Linux**: beta; AppImage and .deb provided.
+```sh
+xattr -cr "/Applications/Claude Account Switcher.app"
+```
+
+Windows and Linux builds are not published yet — see the status note above.
 
 ## How it works
 
